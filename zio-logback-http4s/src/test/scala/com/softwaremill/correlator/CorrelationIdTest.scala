@@ -24,7 +24,7 @@ class CorrelationIdTest extends FlatSpec with Matchers {
 
     val app: ZIO[ZEnv, Throwable, HttpRoutes[Task]] =
       for {
-        implicit0(zioMDCAdapter: ZioMDCAdapter) <- ZioMDCAdapter.init
+        implicit0(zioMDCAdapter: ZioMDC) <- ZioMDC.init
       } yield CorrelationIdMiddleware.addTo()(routes)
 
     // when
@@ -45,7 +45,7 @@ class CorrelationIdTest extends FlatSpec with Matchers {
 
     val app: ZIO[ZEnv, Throwable, HttpRoutes[Task]] =
       for {
-        implicit0(zioMDCAdapter: ZioMDCAdapter) <- ZioMDCAdapter.init
+        implicit0(zioMDCAdapter: ZioMDC) <- ZioMDC.init
       } yield CorrelationIdMiddleware.addTo()(routes)
 
     // when

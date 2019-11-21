@@ -4,7 +4,6 @@ import java.{ util => ju }
 
 import cats.data.{ Kleisli, OptionT }
 import ch.qos.logback.classic.util.LogbackMDCAdapter
-import com.github.ghik.silencer.silent
 import org.http4s.util.CaseInsensitiveString
 import org.http4s.{ HttpRoutes, Request, Response }
 import org.slf4j.{ Logger, LoggerFactory }
@@ -32,7 +31,6 @@ object CorrelationIdMiddleware {
 
   final val getCorrelationId: Task[Option[String]] = Task(Option(org.slf4j.MDC.get(MdcKey)))
 
-  @silent("parameter value zioMDCAdapter in method addTo is never used")
   def addTo[R <: Random with MDC](
     headerName: String = defaultHeaderName,
     logStartRequest: (String, Request[Task]) => Task[Unit] = defaultLogStartRequest,
@@ -58,7 +56,7 @@ object CorrelationIdMiddleware {
  * Based on [[https://olegpy.com/better-logging-monix-1/]]. Makes the current correlation id available for logback
  * loggers.
  */
-final class ZioMDCAdapter private[correlator] (fiber: FiberRef[ju.Map[String, String]], runtime: Runtime[_]) extends LogbackMDCAdapter {
+final class ZioMDC private[correlator](fiber: FiberRef[ju.Map[String, String]], runtime: Runtime[_]) extends LogbackMDCAdapter {
   override def get(key: String): String = runtime.unsafeRun { fiber.get.map(_.get(key)) }
 
   override def put(key: String, `val`: String): Unit =
@@ -89,13 +87,13 @@ final class ZioMDCAdapter private[correlator] (fiber: FiberRef[ju.Map[String, St
   override def getKeys: ju.Set[String] = runtime.unsafeRun { fiber.get.map(_.keySet()) }
 }
 
-object ZioMDCAdapter {
-  final val init: Task[ZioMDCAdapter] =
+object ZioMDC {
+  final val init: Task[ZioMDC] =
     for {
       runtime <- ZIO.runtime[Any]
       fiber   <- FiberRef.make[ju.Map[String, String]](new ju.HashMap())
     } yield {
-      val adapter = new ZioMDCAdapter(fiber, runtime)
+      val adapter = new ZioMDC(fiber, runtime)
       val field   = classOf[org.slf4j.MDC].getDeclaredField("mdcAdapter")
       field.setAccessible(true)
       field.set(null, adapter)
