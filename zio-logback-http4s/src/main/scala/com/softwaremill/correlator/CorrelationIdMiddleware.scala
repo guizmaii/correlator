@@ -104,7 +104,7 @@ object ZioMDC {
 }
 
 trait MDC {
-  def mdc: Task[MDC.Service]
+  def mdc: MDC.Service
 }
 object MDC {
   trait Service {
@@ -119,6 +119,8 @@ object MDC {
   }
 
   trait MDCLive extends MDC {
-    final val mdc: Task[Service] = ZioMDC.init
+    val runtime: Runtime[Any]
+
+    final val mdc: Service = runtime.unsafeRun(ZioMDC.init)
   }
 }
