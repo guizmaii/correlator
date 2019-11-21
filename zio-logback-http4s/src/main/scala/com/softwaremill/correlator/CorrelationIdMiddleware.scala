@@ -58,7 +58,7 @@ object CorrelationIdMiddleware {
  * Based on [[https://olegpy.com/better-logging-monix-1/]]. Makes the current correlation id available for logback
  * loggers.
  */
-final class ZioMDCAdapter private[correlator] (fiber: FiberRef[ju.Map[String, String]], runtime: Runtime[_]) extends LogbackMDCAdapter with MDC.Service {
+final class ZioMDC private[correlator](fiber: FiberRef[ju.Map[String, String]], runtime: Runtime[_]) extends LogbackMDCAdapter with MDC.Service {
   override def get(key: String): String = runtime.unsafeRun { fiber.get.map(_.get(key)) }
 
   override def put(key: String, `val`: String): Unit =
@@ -89,13 +89,13 @@ final class ZioMDCAdapter private[correlator] (fiber: FiberRef[ju.Map[String, St
   override def getKeys: ju.Set[String] = runtime.unsafeRun { fiber.get.map(_.keySet()) }
 }
 
-object ZioMDCAdapter {
-  final val init: Task[ZioMDCAdapter] =
+object ZioMDC {
+  final val init: Task[ZioMDC] =
     for {
       runtime <- ZIO.runtime[Any]
       fiber   <- FiberRef.make[ju.Map[String, String]](new ju.HashMap())
     } yield {
-      val adapter = new ZioMDCAdapter(fiber, runtime)
+      val adapter = new ZioMDC(fiber, runtime)
       val field   = classOf[org.slf4j.MDC].getDeclaredField("mdcAdapter")
       field.setAccessible(true)
       field.set(null, adapter)
@@ -119,6 +119,6 @@ object MDC {
   }
 
   trait MDCLive extends MDC {
-    final val mdc: Task[Service] = ZioMDCAdapter.init
+    final val mdc: Task[Service] = ZioMDC.init
   }
 }
